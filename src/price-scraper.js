@@ -60,59 +60,46 @@ export async function scrapePrice(url) {
     throw error;
   }
 
-  // Launch Puppeteer with the specified Chrome executable
+  console.log('Launching Puppeteer with bundled Chrome...');
   const browser = await puppeteer.launch({
-    headless: 'new',
+    headless: true,
     executablePath: chromePath,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-gpu'
-    ]
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
   });
 
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 1280, height: 800 });
-    
+
     console.log('Navigating to page...');
-    await page.goto(url, { 
-      waitUntil: 'networkidle2',
-      timeout: 120000 
-    });
-    
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
+
     console.log('Waiting for price element...');
-    await page.waitForSelector('div.flex.items-center.gap-2 > span.font-medium.text-neutral-50.text-xl', { timeout: 30000 });
+    await page.waitForSelector('div.flex.items-center.gap-2 > span.font-medium.text-neutral-50.text-xl', { timeout: 60000 });
 
-    // Ensure the second price element exists and has content
-    await page.waitForFunction(
-      () => document.querySelectorAll('div.flex.items-center.gap-2 > span.font-medium.text-neutral-50.text-xl')[1]?.textContent.trim().length > 0,
-      { timeout: 60000 }
+    console.log('Extracting price element...');
+    const priceElementHtml = await page.$eval(
+      'div.flex.items-center.gap-2 > span.font-medium.text-neutral-50.text-xl',
+      el => el.outerHTML
     );
+    console.log('Price element HTML:', priceElementHtml);
 
-    // Extract the second span's text content
+    console.log('Extracting price...');
     const priceText = await page.$$eval(
       'div.flex.items-center.gap-2 > span.font-medium.text-neutral-50.text-xl',
-      elements => elements[1]?.textContent?.trim() || '' // Get the second element's text content
+      elements => elements[1]?.textContent?.trim() || ''
     );
 
-    console.log('Extracted price text:', priceText);
-
     if (!priceText) {
-      throw new Error('Price text is empty. Verify the selector or page content.');
+      throw new Error('Price element not found. Verify the selector or page content.');
     }
 
-    const sanitizedText = priceText.replace(/[^\d.-]+/g, ''); // Remove non-numeric characters
-    console.log('Sanitized price text:', sanitizedText);
+    const sanitizedPrice = parseFloat(priceText.replace(/[^\d.-]/g, ''));
+    console.log('Sanitized price:', sanitizedPrice);
 
-    const price = extractNumber(sanitizedText);
-
-    console.log(`Price extracted: ${price}`);
-    
-    return price;
+    return sanitizedPrice;
   } catch (error) {
-    console.error('Error scraping price:', error);
+    console.error('Error during price scraping:', error);
     throw error;
   } finally {
     await browser.close();
