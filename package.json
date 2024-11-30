@@ -1,0 +1,17 @@
+{
+  "name": "thena-price-monitor",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prestart": "node src/setup.js",
+    "start": "node src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@puppeteer/browsers": "^2.4.1",
+    "chrome-launcher": "^1.1.0",
+    "dotenv": "^16.3.1",
+    "node-telegram-bot-api": "^0.63.0",
+    "puppeteer-core": "^23.9.0"
+  }
+}
