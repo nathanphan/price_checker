@@ -78,7 +78,7 @@ export async function scrapePrice(url) {
     
     console.log('Navigating to page...');
     await page.goto(url, { 
-      waitUntil: 'networkidle0',
+      waitUntil: 'networkidle2',
       timeout: 120000 
     });
     
@@ -88,7 +88,7 @@ export async function scrapePrice(url) {
     // Ensure the second price element exists and has content
     await page.waitForFunction(
       () => document.querySelectorAll('div.flex.items-center.gap-2 > span.font-medium.text-neutral-50.text-xl')[1]?.textContent.trim().length > 0,
-      { timeout: 30000 }
+      { timeout: 60000 }
     );
 
     // Extract the second span's text content
