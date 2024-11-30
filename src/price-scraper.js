@@ -61,7 +61,7 @@ export async function scrapePrice(url) {
   }
 
   const browser = await puppeteer.launch({
-    headless: false, // Set to true for production
+    headless: true, // Set to true for production
     executablePath: chromePath,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
   });
