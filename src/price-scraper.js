@@ -61,7 +61,7 @@ export async function scrapePrice(url) {
   }
 
   const browser = await puppeteer.launch({
-    headless: true,
+    headless: false, // Set to true for production
     executablePath: chromePath,
     args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
   });
@@ -71,27 +71,30 @@ export async function scrapePrice(url) {
     await page.setViewport({ width: 1280, height: 800 });
 
     console.log('Navigating to page...');
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 120000 });
 
     console.log('Saving page content for debugging...');
     const content = await page.content();
-    fs.writeFileSync('page.html', content); // Save page content for inspection
-    console.log('Page content saved to page.html');
+    fs.writeFileSync('debug-page.html', content); // Save content to file
+    console.log('Page content saved to debug-page.html');
 
-    console.log('Waiting for price element...');
-    await page.waitForFunction(
-      () => {
-        const elements = document.querySelectorAll('div.flex.items-center.gap-2 > span.font-medium.text-neutral-50.text-xl');
-        return elements.length > 1 && elements[1]?.textContent?.trim().length > 0;
-      },
-      { timeout: 60000 } // Wait up to 60 seconds
-    );
+    let priceText = '';
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        console.log(`Attempt ${attempt}: Waiting for price element...`);
+        await page.waitForSelector('div.flex.items-center.gap-2 > span.font-medium.text-neutral-50.text-xl', { timeout: 20000 });
 
-    console.log('Extracting price element...');
-    const priceText = await page.$$eval(
-      'div.flex.items-center.gap-2 > span.font-medium.text-neutral-50.text-xl',
-      elements => elements[1]?.textContent?.trim() || ''
-    );
+        console.log('Extracting price element...');
+        priceText = await page.$$eval(
+          'div.flex.items-center.gap-2 > span.font-medium.text-neutral-50.text-xl',
+          elements => elements[1]?.textContent?.trim() || ''
+        );
+        if (priceText) break; // Exit retry loop if price is found
+      } catch (error) {
+        console.error(`Attempt ${attempt} failed:`, error.message);
+        if (attempt === 3) throw error; // Rethrow after final attempt
+      }
+    }
 
     if (!priceText) {
       throw new Error('Price element not found. Verify the selector or page content.');
