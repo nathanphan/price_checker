@@ -79,7 +79,7 @@ export async function scrapePrice(url) {
     console.log('Navigating to page...');
     await page.goto(url, { 
       waitUntil: 'networkidle0',
-      timeout: 60000 
+      timeout: 120000 
     });
     
     console.log('Waiting for price element...');
